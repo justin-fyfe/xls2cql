@@ -222,7 +222,7 @@ namespace Xls2Cql.DecisionTable
 
                         // Collect the actual logic and group it into rule groups 
                         var row = inputCell.WorksheetRow().RowBelow();
-                        while(!row.Cell(inputStartCol).IsEmpty())
+                        while(!row.Cell(inputStartCol).IsEmpty() || (row.Cell(inputStartCol).IsMerged() && !row.Cell(inputStartCol).MergedRange().FirstCell().IsEmpty()))
                         {
 
                             var action = String.Empty;
@@ -272,12 +272,22 @@ namespace Xls2Cql.DecisionTable
                             {
                                 try
                                 {
-                                    if (row.Cell(c).IsEmpty())
+                                    String value = String.Empty;
+                                    if (row.Cell(c).IsMerged())
                                     {
-                                        break;
+                                        value = row.Cell(c).MergedRange().FirstCell().GetValue<String>();
+                                    }
+                                    else
+                                    {
+                                        value = row.Cell(c).GetValue<String>();
                                     }
 
-                                    var expr = CqlExpression.Parse(row.Cell(c).GetValue<String>().Trim());
+                                    if(String.IsNullOrEmpty(value))
+                                    {
+                                        continue;
+                                    }
+
+                                    var expr = CqlExpression.Parse(value);
                                     if (rowExpression == null)
                                     {
                                         rowExpression = expr;
