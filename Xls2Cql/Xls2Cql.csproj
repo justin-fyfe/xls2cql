@@ -10,4 +10,13 @@
     <PackageReference Include="Hl7.Fhir.R4" Version="3.8.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="iz-skel.cql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="skel.cql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
