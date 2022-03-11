@@ -19,7 +19,8 @@ namespace Xls2Cql
         private const string PARM_OUTPUT = "output";
         private const string PARM_SKEL = "skel";
         private const string PARM_REPLACE = "replace";
-
+        private const string PARM_REFRESH = "refresh";
+        
 
         private static readonly Regex parmExtract = new Regex(@"^--(\w*?)(?:\=(.*?))?$");
 
@@ -101,7 +102,7 @@ namespace Xls2Cql
                             {
                                 if (generators.TryGetValue(itm, out var generator))
                                 {
-                                    generator.Generate(wkb, outputDirectory, settings.TryGetValue(PARM_REPLACE, out _), settings.TryGetValue(PARM_SKEL, out var skel) ? skel.First() : null);
+                                    generator.Generate(wkb, outputDirectory, settings.TryGetValue(PARM_SKEL, out var skel) ? skel.First() : null, settings.ToDictionary(o=>o.Key, o=>(object)o.Value));
                                 }
                                 else
                                 {
@@ -135,6 +136,7 @@ namespace Xls2Cql
             Console.WriteLine($"--{PARM_INPUT}=input.xlsx\t\tInput Excel spread sheet");
             Console.WriteLine($"--{PARM_OUTPUT}=directory\t\tThe output directory (the tool will create input\\cql\\XXXX.cql)");
             Console.WriteLine($"--{PARM_REPLACE}\t\t\tReplace/overwrite existing files");
+            Console.WriteLine($"--{PARM_REFRESH}\t\t\tRefresh the contents of the define statements");
             Console.WriteLine($"--{PARM_SKEL}=fileName.cql\t\tThe skeleton file to use (for your includes and any header contents)");
             Console.WriteLine("\r\nWhere generatorName is one of:");
             foreach(var itm in generators)

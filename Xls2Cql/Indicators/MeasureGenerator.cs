@@ -3,6 +3,7 @@ using Hl7.Fhir.Model;
 using Hl7.Fhir.Serialization;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -21,7 +22,7 @@ namespace Xls2Cql.Indicators
         public String Description => "WHO DAK L2 Indicator to Measure JSON Resources";
 
         ///<inheritdoc/>
-        public void Generate(IXLWorkbook workbook, string rootPath, bool replaceExisting, string skelFile)
+        public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<String, Object> arguments )
         {
 
             var replaceRegex = new Regex(@"[\s\-\(\)]");
@@ -117,7 +118,7 @@ namespace Xls2Cql.Indicators
 
                 Console.WriteLine("Generating {0}...", fileName);
                 // File exists? Want to make sure we actually want to replace it
-                if (File.Exists(fileName) && !replaceExisting)
+                if (File.Exists(fileName) && !arguments.TryGetValue("refresh", out _))
                 {
                     Console.WriteLine("File {0} already exists - skipping", fileName);
                     continue;

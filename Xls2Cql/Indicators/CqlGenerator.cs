@@ -20,7 +20,7 @@ namespace Xls2Cql.Indicators
         public string Description => "WHO DAK L2 Indicator Table to CQL";
 
         /// <inheritdoc/>
-        public void Generate(IXLWorkbook workbook, string rootPath, bool replaceExisting, string skelFile)
+        public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<String, Object> arguments)
         {
             var idRegex = new Regex(@"^([^\d]*?)(\d*)$"); // regex to extract ID from Excel
             var defineRegex = new Regex(@"(define\s?\""(.*?)\""[\S\s]*?)\/\*", RegexOptions.Multiline | RegexOptions.IgnoreCase); // Regex to extract DEFINE statements from existing CQL file
@@ -74,9 +74,9 @@ namespace Xls2Cql.Indicators
                 // File exists ? Load the contents so we don't nuke any of the current logic
                 if (File.Exists(fileName))
                 {
-                    if (!replaceExisting)
+                    if (!arguments.TryGetValue("replace", out _))
                     {
-                        Console.WriteLine("File {0} already exists - skipping", fileName);
+                        Console.WriteLine("File {0} already exists - skipping (use --replace)", fileName);
                         continue;
                     }
 
@@ -132,7 +132,7 @@ namespace Xls2Cql.Indicators
 
                     tw.WriteLine("/*\r\n * Numerator: {0}\r\n * Numerator Computation: {1}\r\n */", row.Cell(IndicatorConstants.NumeratorDefinitionColumn).GetValue<String>(), row.Cell(IndicatorConstants.NumeratorComputationColumn).GetValue<String>());
 
-                    if (existingStatements.TryGetValue("numerator", out var numerator))
+                    if (existingStatements.TryGetValue("numerator", out var numerator) && !arguments.TryGetValue("refresh", out _))
                     {
                         tw.WriteLine(numerator);
                     }
@@ -142,7 +142,7 @@ namespace Xls2Cql.Indicators
                     }
                     tw.WriteLine("/*\r\n * Denominator: {0}\r\n * Denominator Computation: {1}\r\n */", row.Cell(IndicatorConstants.DenominatorDefinitionColumn).GetValue<String>(), row.Cell(IndicatorConstants.DenominatorComputationColumn).GetValue<String>());
 
-                    if (existingStatements.TryGetValue("denominator", out var denom))
+                    if (existingStatements.TryGetValue("denominator", out var denom) && !arguments.TryGetValue("refresh", out _))
                     {
                         tw.WriteLine(denom);
                     }
@@ -161,7 +161,7 @@ namespace Xls2Cql.Indicators
                             dn = dn.Substring(0, dn.IndexOf("("));
                         }
 
-                        if (existingStatements.TryGetValue($"{dn} Stratifier", out var strat))
+                        if (existingStatements.TryGetValue($"{dn} Stratifier", out var strat) && !arguments.TryGetValue("refresh", out _))
                         {
                             tw.WriteLine(strat);
                         }

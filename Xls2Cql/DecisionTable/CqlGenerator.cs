@@ -73,7 +73,7 @@ namespace Xls2Cql.DecisionTable
         public string Description => "Decision Tables to CQL";
 
         /// <inheritdoc/>
-        public void Generate(IXLWorkbook workbook, string rootPath, bool replaceExisting, string skelFile)
+        public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<String, Object> arguments)
         {
 
             // Regex for decision ID column
@@ -178,9 +178,9 @@ namespace Xls2Cql.DecisionTable
 
                     if (File.Exists(fileName))
                     {
-                        if (!replaceExisting)
+                        if (!arguments.TryGetValue("replace", out _))
                         {
-                            Console.WriteLine("File {0} already exists - skipping", fileName);
+                            Console.WriteLine("File {0} already exists - skipping (use --replace)", fileName);
                             continue;
                         }
 
@@ -229,7 +229,8 @@ namespace Xls2Cql.DecisionTable
                             // Process actions
                             for (var c = actionStartCol; c < annotationStartCol; c++)
                             {
-                                    var value = row.Cell(c).GetValue<String>().Trim();
+                                var value = row.Cell(c).GetValue<String>().Trim();
+
                                 if (row.Cell(c).IsMerged())
                                 {
                                     value =row.Cell(c).MergedRange().FirstCell().GetValue<String>();
@@ -269,19 +270,26 @@ namespace Xls2Cql.DecisionTable
                             CqlExpression rowExpression = null;
                             for (int c = inputStartCol; c < outputStartCol; c++)
                             {
-                                if(row.Cell(c).IsEmpty())
+                                try
                                 {
-                                    break;
-                                }
+                                    if (row.Cell(c).IsEmpty())
+                                    {
+                                        break;
+                                    }
 
-                                var expr = CqlExpression.Parse(row.Cell(c).GetValue<String>().Trim());
-                                if (rowExpression == null)
-                                {
-                                    rowExpression = expr;
+                                    var expr = CqlExpression.Parse(row.Cell(c).GetValue<String>().Trim());
+                                    if (rowExpression == null)
+                                    {
+                                        rowExpression = expr;
+                                    }
+                                    else
+                                    {
+                                        rowExpression = new CqlBinaryExpression(CqlBinaryOperator.And, rowExpression, expr);
+                                    }
                                 }
-                                else
+                                catch(Exception e)
                                 {
-                                    rowExpression = new CqlBinaryExpression(CqlBinaryOperator.And, rowExpression, expr);
+                                    Console.WriteLine("WARNING: Cell {0} - {1}", row.Cell(c).ToString(), e.Message);
                                 }
                             }
 
@@ -319,10 +327,9 @@ namespace Xls2Cql.DecisionTable
 
                                 if (!existingElements.Contains(defineTerm)) {
                                     tw.WriteLine("/* \r\n * @dataElement {0}\r\n */", defineTerm);
-                                    if (existingStatements.TryGetValue(defineTerm, out var existingStmt) && !replaceExisting)
+                                    if (existingStatements.TryGetValue(defineTerm, out var existingStmt) && !arguments.TryGetValue("refresh", out _))
                                     {
-                                        tw.WriteLine("define \"{0}\":\r\n\t{1}; // TODO: Define this\r\n", defineTerm, existingStmt);
-
+                                        tw.WriteLine("{0}\r\n", existingStmt);
                                     }
                                     else
                                     {
@@ -349,18 +356,17 @@ namespace Xls2Cql.DecisionTable
                             {
                                 tw.WriteLine(" * \t- {0}", itm);
                             }
-                            tw.WriteLine(" * Logic: {0}", r.Expression);
+                            tw.WriteLine(" * Logic:\r\n *\t {0}", r.Expression);
                             tw.WriteLine(" */");
 
                             var name = r.Action;
-                            tw.WriteLine("define \"{0}\":", name);
-
-                            if (existingStatements.TryGetValue(name, out string existing) && !replaceExisting) {
-                                tw.WriteLine("\t{0};", existing);
+                          
+                            if (existingStatements.TryGetValue(name, out string existing) && !arguments.TryGetValue("refresh", out _)) {
+                                tw.WriteLine("{0}", existing);
                             }
                             else
                             {
-                                tw.WriteLine("\t{0};", r.Expression);
+                                tw.WriteLine("define \"{0}\":\r\n\t{1};\r\n", name, r.Expression);
                             }
                         }
 
