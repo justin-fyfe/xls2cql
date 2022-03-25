@@ -35,6 +35,14 @@ To generate decision table CQL you should use the `who.dak.l2.dt.cql` generator.
 dotnet Xls2Cql.dll --generate=who.dak.l2.dt.cql --input="dt.xlsx" --output="C:\Users\myuser\source\repos\my-ig" --skel=skel.cql --replace
 ```
 
+## Generating Plan Definitions and Activity Definitions
+
+To generate decision table `PlanDefinition` and `ActivityDefinition` resources you should use the `who.dak.l2.dt.pd` generator. For example, to take the contents of dt.xlsx and generate the CQL in a project:
+
+```
+dotnet Xls2Cql.dll --generate=who.dak.l2.dt.pd --input="dt.xlsx" --output="C:\Users\myuser\source\repos\my-ig" --replace
+```
+
 ## Generating Indicator CQL
 
 To generate indicator CQL you should use the `who.dak.l2.ind.cql` generator. For example, to take the contents of ind.xlsx and generate the CQL in a project:
