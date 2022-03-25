@@ -28,9 +28,29 @@ namespace Xls2Cql.DecisionTable
         internal const string ActionLabel = "Action";
 
         /// <summary>
+        /// The activity definition canonical base URL.
+        /// </summary>
+        internal const string ActivityDefinitionCanonicalBaseUrl = "http://hl7.org/fhir/uv/cpg/ActivityDefinition/activity-example-recommendimmunization/";
+
+        /// <summary>
+        /// The activity definition publisher.
+        /// </summary>
+        internal const string ActivityDefinitionPublisher = "WHO";
+
+        /// <summary>
         /// The annotations label.
         /// </summary>
         internal const string AnnotationsLabel = "Annotations";
+
+        /// <summary>
+        /// The FHIR CPG immunization profile URL.
+        /// </summary>
+        internal const string CpgImmunizationProfileUrl = "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-immunizationrecommendation";
+
+        /// <summary>
+        /// The FHIR CPG immunization activity definition profile URL.
+        /// </summary>
+        internal const string CpgImmunizationActivityDefinitionProfileUrl = "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-immunizationactivity";
 
         /// <summary>
         /// The inputs column start.
@@ -48,7 +68,7 @@ namespace Xls2Cql.DecisionTable
         internal const string InputsLabel = "Inputs";
 
         /// <summary>
-        /// The plan definition base url.
+        /// The plan definition base URL.
         /// </summary>
         internal const string PlanDefinitionBaseUrl = "http://fhir.org/guides/who/Immz/PlanDefinition/";
 
@@ -56,5 +76,20 @@ namespace Xls2Cql.DecisionTable
         /// The output label.
         /// </summary>
         internal const string OutputLabel = "Output";
+
+        /// <summary>
+        /// The SNOMED CT description.
+        /// </summary>
+        internal const string SnomedCtDescription = "Administration of vaccine to produce active immunity";
+
+        /// <summary>
+        /// The SNOMED CT URL.
+        /// </summary>
+        internal const string SnomedCtUrl = "http://snomed.info/sct/";
+
+        /// <summary>
+        /// The SNOMED CT vaccination code.
+        /// </summary>
+        internal const string SnomedCtVaccinationCode = "33879002";
     }
 }
