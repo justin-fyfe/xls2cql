@@ -179,11 +179,11 @@ namespace Xls2Cql.DecisionTable
         /// Writes a FHIR resource to a file.
         /// </summary>
         /// <param name="rootPath">The root path.</param>
-        /// <param name="sheetName">The sheet name.</param>
+        /// <param name="name">The sheet name.</param>
         /// <param name="parameters">The parameters.</param>
         /// <param name="resource">The resource.</param>
         /// <exception cref="InvalidOperationException"></exception>
-        private void WriteToFile(string rootPath, string sheetName, IDictionary<string, object> parameters, Resource resource)
+        private void WriteToFile(string rootPath, string name, IDictionary<string, object> parameters, Resource resource)
         {
             var serializer = new FhirJsonSerializer(new SerializerSettings
             {
@@ -197,7 +197,7 @@ namespace Xls2Cql.DecisionTable
                 _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
             };
 
-            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, $"{sheetName}"), ".json");
+            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, $"{name}"), ".json");
 
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
