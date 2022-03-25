@@ -207,7 +207,7 @@ namespace Xls2Cql.DecisionTable
             Console.WriteLine("Generating {0}...", fileName);
 
             // File exists? Want to make sure we actually want to replace it
-            if (File.Exists(fileName) && !parameters.TryGetValue("refresh", out _))
+            if (File.Exists(fileName) && !parameters.TryGetValue("replace", out _))
             {
                 Console.WriteLine("File {0} already exists - skipping", fileName);
             }
