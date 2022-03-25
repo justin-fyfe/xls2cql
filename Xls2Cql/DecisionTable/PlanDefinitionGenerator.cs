@@ -59,12 +59,9 @@ namespace Xls2Cql.DecisionTable
         /// <returns>The generated file</returns>
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
-            //var replaceRegex = new Regex(@"[\s\-\(\)]");
-            //var disaggregatorRegex = new Regex(@"^([^\(]*)\s?\(?.*$");
-            //var idRegex = new Regex(@"^([^\d]*?)(\d*)$");
-
             foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
             {
+                var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
 
                 IXLCell outputHeaderCell = null;
@@ -74,7 +71,6 @@ namespace Xls2Cql.DecisionTable
 
                 foreach (var row in sheet.Rows())
                 {
-                    
                     // we are done processing the final input on the final row
                     if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cell(PlanDefinitionConstants.InputsColumnStart)?.Value?.ToString() == string.Empty)
                     {
@@ -95,91 +91,135 @@ namespace Xls2Cql.DecisionTable
                             actionHeaderCell = row.Cells(c => c.Value?.ToString() == PlanDefinitionConstants.ActionLabel).Single();
                             annotationHeaderCell = row.Cells(c => c.Value?.ToString() == PlanDefinitionConstants.AnnotationsLabel).Single();
                             continue;
-                            //case 6:
-                            //    planDefinition.tr= row.Cell(2).Value?.ToString();
-                            //    continue;
                     }
 
-                    if (row.RowNumber() >= PlanDefinitionConstants.InputsRowStart)
+
+                    // move to the next iteration if we have not yet reached the input row
+                    if (row.RowNumber() < PlanDefinitionConstants.InputsRowStart)
                     {
-                        // TODO: build actions
-                        // keep getting input cells until we reach the output cell
+                        continue;
+                    }
 
-                        //var activityDefinition = new ActivityDefinition
-                        //{
-                        //    Title = row.Cell(outputCell.Address.ColumnNumber)?.Value?.ToString(),
-                        //    Description = new Markdown(row.Cell(annotationCell.Address.ColumnNumber)?.Value?.ToString())
-                        //};
+                    var activityDefinitionId = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString()?.Replace(" ", "-").Replace("---", "-");
 
-                        var action = new PlanDefinition.ActionComponent
-                        {
-                            Title = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
-                            Description = row.Cell(annotationHeaderCell.Address.ColumnNumber)?.Value?.ToString()
-                        };
+                    // remove the trailing dash from the id if neecessary
+                    activityDefinitionId = activityDefinitionId.EndsWith("-") ? activityDefinitionId.Substring(0, activityDefinitionId.Length - 1) : activityDefinitionId;
 
-                        if (actionCell == null)
+                    var action = new PlanDefinition.ActionComponent
+                    {
+                        Title = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
+                        Description = row.Cell(annotationHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
+                        Definition = new Canonical($"{PlanDefinitionConstants.ActivityDefinitionCanonicalBaseUrl}{activityDefinitionId}")
+                    };
+
+                    // we need to maintain the original reference to the Action
+                    // in the case the action cell is a merged cell
+                    // meaning that multiple logical groupings of inputs in the sheet
+                    // all result in the same action
+                    actionCell ??= row.Cell(actionHeaderCell.Address.ColumnNumber);
+
+                    foreach (var cellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                    {
+                        // if the action cell is not merged, then get a reference to the correct action cell
+                        if (!actionCell.IsMerged())
                         {
                             actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
                         }
 
-                        foreach (var cellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                        action.Condition.Add(new PlanDefinition.ConditionComponent
                         {
-                            ;
-                            if (!actionCell.IsMerged())
+                            Expression = new Expression
                             {
-                                actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
-                            }
-
-                            action.Condition.Add(new PlanDefinition.ConditionComponent
-                            {
-                                Expression = new Expression
-                                {
-                                    Description = cellEntry.Value?.ToString(),
-                                    Language = "text/cql",
-                                    Expression_ = actionCell.Value?.ToString()
-                                },
-                                Kind = ActionConditionKind.Applicability,
-                            });
-                        }
-
-                        planDefinition.Action.Add(action);
-
-
-
-                        //activityDefinition
+                                Description = cellEntry.Value?.ToString(),
+                                Language = "text/cql",
+                                Expression_ = actionCell.Value?.ToString()
+                            },
+                            Kind = ActionConditionKind.Applicability
+                        });
                     }
-                }
 
-                var serializer = new FhirJsonSerializer(new SerializerSettings()
-                {
-                    Pretty = true
-                });
+                    planDefinition.Action.Add(action);
 
-                var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", "plandefinition", $"{sheet.Name}"), ".json");
-
-                if (!Directory.Exists(Path.GetDirectoryName(fileName)))
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(fileName));
-                }
-
-                Console.WriteLine("Generating {0}...", fileName);
-
-                // File exists? Want to make sure we actually want to replace it
-                if (File.Exists(fileName) && !parameters.TryGetValue("refresh", out _))
-                {
-                    Console.WriteLine("File {0} already exists - skipping", fileName);
-                    continue;
-                }
-                else
-                {
-                    using var tw = File.CreateText(fileName);
-                    using var jw = new JsonTextWriter(tw)
+                    // add the plan definition and activity definition to the list of resources to be written to the file system
+                    resources.Add(new ActivityDefinition
                     {
-                        Formatting = Formatting.Indented
+                        Code = new CodeableConcept(PlanDefinitionConstants.SnomedCtUrl, PlanDefinitionConstants.SnomedCtVaccinationCode, PlanDefinitionConstants.SnomedCtDescription, null),
+                        DoNotPerform = false,
+                        Id = activityDefinitionId,
+                        Intent = RequestIntent.Proposal,
+                        Meta = new Meta
+                        {
+                            Profile = new List<string>
+                            {
+                                PlanDefinitionConstants.CpgImmunizationActivityDefinitionProfileUrl
+                            }
+                        },
+                        Status = PublicationStatus.Draft,
+                        Publisher = PlanDefinitionConstants.ActivityDefinitionPublisher,
+                        Description = new Markdown(action.Description)
+                    });
+                    resources.Add(planDefinition);
+                }
+
+                foreach (var resource in resources)
+                {
+                    var name = resource switch
+                    {
+                        PlanDefinition _ => sheet.Name,
+                        ActivityDefinition _ => $"{resource.Id.Replace("/", "-").Replace("--", "-").Replace("\\", "-")}",
+                        _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
                     };
 
-                    serializer.Serialize(planDefinition, jw);
+                    this.WriteToFile(rootPath, name, parameters, resource);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Writes a FHIR resource to a file.
+        /// </summary>
+        /// <param name="rootPath">The root path.</param>
+        /// <param name="sheetName">The sheet name.</param>
+        /// <param name="parameters">The parameters.</param>
+        /// <param name="resource">The resource.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        private void WriteToFile(string rootPath, string sheetName, IDictionary<string, object> parameters, Resource resource)
+        {
+            var serializer = new FhirJsonSerializer(new SerializerSettings
+            {
+                Pretty = true
+            });
+
+            var path = resource switch
+            {
+                PlanDefinition _ => "plandefinition",
+                ActivityDefinition _ => "activitydefinition",
+                _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
+            };
+
+            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, $"{sheetName}"), ".json");
+
+            if (!Directory.Exists(Path.GetDirectoryName(fileName)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+            }
+
+            Console.WriteLine("Generating {0}...", fileName);
+
+            // File exists? Want to make sure we actually want to replace it
+            if (File.Exists(fileName) && !parameters.TryGetValue("refresh", out _))
+            {
+                Console.WriteLine("File {0} already exists - skipping", fileName);
+            }
+            else
+            {
+                using var streamWriter = File.CreateText(fileName);
+                using var jsonTextWriter = new JsonTextWriter(streamWriter)
+                {
+                    Formatting = Formatting.Indented
+                };
+
+                serializer.Serialize(resource, jsonTextWriter);
             }
         }
     }
