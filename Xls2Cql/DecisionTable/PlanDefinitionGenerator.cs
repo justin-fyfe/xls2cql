@@ -102,8 +102,8 @@ namespace Xls2Cql.DecisionTable
 
                     var activityDefinitionId = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString()?.Replace(" ", "-").Replace("---", "-");
 
-                    // remove the trailing dash from the id if neecessary
-                    activityDefinitionId = activityDefinitionId.EndsWith("-") ? activityDefinitionId.Substring(0, activityDefinitionId.Length - 1) : activityDefinitionId;
+                    // remove the trailing dash from the id if necessary
+                    activityDefinitionId = activityDefinitionId.EndsWith("-") ? activityDefinitionId[..^1] : activityDefinitionId;
 
                     var action = new PlanDefinition.ActionComponent
                     {
