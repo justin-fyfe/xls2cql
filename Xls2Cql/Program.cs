@@ -15,9 +15,6 @@
  * Date: 2022-1-7
  */
 using ClosedXML.Excel;
-using Hl7.Fhir.Model;
-using Hl7.Fhir.Serialization;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -90,7 +87,7 @@ namespace Xls2Cql
                 }
                 else if (settings.TryGetValue(PARM_GENERATE, out var generate))
                 {
-                    string inputFile = String.Empty, outputDirectory = String.Empty;
+                    string inputFile = string.Empty, outputDirectory = string.Empty;
 
                     if(settings.TryGetValue(PARM_INPUT, out var inputList))
                     {
@@ -110,26 +107,23 @@ namespace Xls2Cql
                         outputDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                     }
 
-                    using (var excelStream = File.OpenRead(inputFile))
+                    using var excelStream = File.OpenRead(inputFile);
+                    using var wkb = new XLWorkbook(excelStream);
+
+                    foreach (var itm in generate)
                     {
-                        using (var wkb = new XLWorkbook(excelStream))
+                        if (generators.TryGetValue(itm, out var generator))
                         {
-                            foreach (string itm in generate)
-                            {
-                                if (generators.TryGetValue(itm, out var generator))
-                                {
-                                    generator.Generate(wkb, outputDirectory, settings.TryGetValue(PARM_SKEL, out var skel) ? skel.First() : null, settings.ToDictionary(o=>o.Key, o=>(object)o.Value));
-                                }
-                                else
-                                {
-                                    throw new InvalidOperationException($"Don't have a generator for {itm}");
-                                }
-                            }
+                            generator.Generate(wkb, outputDirectory, settings.TryGetValue(PARM_SKEL, out var skel) ? skel.First() : null, settings.ToDictionary(o=>o.Key, o=>(object)o.Value));
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Don't have a generator for {itm}");
                         }
                     }
-    
                 }
-                else {
+                else
+                {
                     ShowHelp(generators);
                 }
                

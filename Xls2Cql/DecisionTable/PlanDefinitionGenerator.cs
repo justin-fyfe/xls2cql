@@ -93,14 +93,13 @@ namespace Xls2Cql.DecisionTable
                             continue;
                     }
 
-
                     // move to the next iteration if we have not yet reached the input row
                     if (row.RowNumber() < PlanDefinitionConstants.InputsRowStart)
                     {
                         continue;
                     }
 
-                    var activityDefinitionId = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString()?.Replace(" ", "-").Replace("---", "-");
+                    var activityDefinitionId = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString()?.Replace(" ", "-").Replace("---", "-").Replace("\\", "-");
 
                     // remove the trailing dash from the id if necessary
                     activityDefinitionId = activityDefinitionId.EndsWith("-") ? activityDefinitionId[..^1] : activityDefinitionId;
@@ -192,12 +191,12 @@ namespace Xls2Cql.DecisionTable
 
             var path = resource switch
             {
-                PlanDefinition _ => "plandefinition",
-                ActivityDefinition _ => "activitydefinition",
+                PlanDefinition _ => nameof(PlanDefinition).ToLower(),
+                ActivityDefinition _ => nameof(ActivityDefinition).ToLower(),
                 _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
             };
 
-            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, $"{name}"), ".json");
+            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, name), ".json");
 
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
