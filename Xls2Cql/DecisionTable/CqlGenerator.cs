@@ -359,7 +359,7 @@ namespace Xls2Cql.DecisionTable
                                     }
                                     else
                                     {
-                                        tw.WriteLine("define \"{0}\":\r\n\ttrue; // TODO: Define this\r\n", defineTerm);
+                                        tw.WriteLine("define \"{0}\":\r\n\t0 // TODO: Define this\r\n", defineTerm);
                                     }
                                     existingElements.Add(defineTerm);
                                 }
@@ -392,7 +392,7 @@ namespace Xls2Cql.DecisionTable
                             }
                             else
                             {
-                                tw.WriteLine("define \"{0}\":\r\n\t{1};\r\n", name, r.Expression);
+                                tw.WriteLine("define \"{0}\":\r\n\t{1}\r\n", name, r.Expression);
                             }
                         }
 
