@@ -65,6 +65,7 @@ namespace Xls2Cql.DecisionTable
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
 
+                IXLCell inputCell = null;
                 IXLCell outputHeaderCell = null;
                 IXLCell actionHeaderCell = null;
                 IXLCell annotationHeaderCell = null;
@@ -95,7 +96,6 @@ namespace Xls2Cql.DecisionTable
                                 planDefinition.Id = $"{(planDefinitionBaseUrl as List<string>)?.FirstOrDefault()}{row.Cell(3).Value}";
                             }
 
-                            //planDefinition.Id = $"{PlanDefinitionConstants.PlanDefinitionBaseUrl}{row.Cell(3).Value}";
                             planDefinition.Name = row.Cell(3).Value?.ToString();
                             continue;
                         case 5:
@@ -140,7 +140,8 @@ namespace Xls2Cql.DecisionTable
                     // all result in the same action
                     actionCell ??= row.Cell(actionHeaderCell.Address.ColumnNumber);
 
-                    foreach (var inputCell in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                    // iterate through each input cell in the row until we reach the output column
+                    foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
                     {
                         // if the action cell is not merged, then get a reference to the correct action cell
                         if (!actionCell.IsMerged())
@@ -152,7 +153,7 @@ namespace Xls2Cql.DecisionTable
                         {
                             Expression = new Expression
                             {
-                                Description = inputCell.Value?.ToString(),
+                                Description = inputCellEntry.Value?.ToString(),
                                 Language = "text/cql",
                                 Expression_ = actionCell.Value?.ToString()
                             },
@@ -169,7 +170,7 @@ namespace Xls2Cql.DecisionTable
                         Console.ResetColor();
                     }
 
-                    // add the plan definition and activity definition to the list of resources to be written to the file system
+                    // add the activity definition to the list of resources to be written to the file system
                     resources.Add(new ActivityDefinition
                     {
                         Code = new CodeableConcept(PlanDefinitionConstants.SnomedCtUrl, PlanDefinitionConstants.SnomedCtVaccinationCode, PlanDefinitionConstants.SnomedCtDescription, null),
@@ -213,7 +214,7 @@ namespace Xls2Cql.DecisionTable
         /// <param name="name">The sheet name.</param>
         /// <param name="parameters">The parameters.</param>
         /// <param name="resource">The resource.</param>
-        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="InvalidOperationException">If the resource type is unknown.</exception>
         private void WriteToFile(string rootPath, string name, IDictionary<string, object> parameters, Resource resource)
         {
             var serializer = new FhirJsonSerializer(new SerializerSettings
