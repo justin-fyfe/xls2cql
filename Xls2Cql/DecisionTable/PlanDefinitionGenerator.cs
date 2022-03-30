@@ -83,7 +83,19 @@ namespace Xls2Cql.DecisionTable
                     switch (row.RowNumber())
                     {
                         case 4:
-                            planDefinition.Id = $"{PlanDefinitionConstants.PlanDefinitionBaseUrl}{row.Cell(3).Value}";
+                            if (!parameters.TryGetValue(PlanDefinitionConstants.PlanDefinitionBaseUrlParameter, out var planDefinitionBaseUrl))
+                            {
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine($"Argument '{PlanDefinitionConstants.PlanDefinitionBaseUrlParameter}' not specified. Generated {nameof(PlanDefinition)} resource conditions will not have a 'id'");
+                                Console.ResetColor();
+                            }
+                            else
+                            {
+                                // HACK
+                                planDefinition.Id = $"{(planDefinitionBaseUrl as List<string>)?.FirstOrDefault()}{row.Cell(3).Value}";
+                            }
+
+                            //planDefinition.Id = $"{PlanDefinitionConstants.PlanDefinitionBaseUrl}{row.Cell(3).Value}";
                             planDefinition.Name = row.Cell(3).Value?.ToString();
                             continue;
                         case 5:

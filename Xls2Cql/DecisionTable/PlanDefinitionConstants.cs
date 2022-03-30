@@ -63,9 +63,9 @@ namespace Xls2Cql.DecisionTable
         internal const string InputsLabel = "Inputs";
 
         /// <summary>
-        /// The plan definition base URL.
+        /// The plan definition base URL parameter.
         /// </summary>
-        internal const string PlanDefinitionBaseUrl = "http://fhir.org/guides/who/Immz/PlanDefinition/";
+        internal const string PlanDefinitionBaseUrlParameter = "pdBaseUrl";
 
         /// <summary>
         /// The output label.
