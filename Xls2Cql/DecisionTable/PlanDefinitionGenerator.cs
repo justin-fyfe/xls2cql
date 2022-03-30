@@ -59,8 +59,8 @@ namespace Xls2Cql.DecisionTable
         /// <returns>The generated file</returns>
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
-            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
-            foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.01.BCG"))
+            foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
+            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.01.BCG"))
             {
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
