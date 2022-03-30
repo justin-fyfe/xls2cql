@@ -40,7 +40,7 @@ dotnet Xls2Cql.dll --generate=who.dak.l2.dt.cql --input="dt.xlsx" --output="C:\U
 To generate decision table `PlanDefinition` and `ActivityDefinition` resources you should use the `who.dak.l2.dt.pd` generator. For example, to take the contents of dt.xlsx and generate the `PlanDefinition` and `ActivityDefinition` resources in a project:
 
 ```
-dotnet Xls2Cql.dll --generate=who.dak.l2.dt.pd --input="dt.xlsx" --output="C:\Users\myuser\source\repos\my-ig" --replace --adProfileUrl="http://example.com/myProfile" --adCanonicalUrl="http://example.com/myCanonical"
+dotnet Xls2Cql.dll --generate=who.dak.l2.dt.pd --input="dt.xlsx" --output="C:\Users\myuser\source\repos\my-ig" --pdBaseUrl="http://example.com/guides/PlanDefinition/" --adProfileUrl="http://example.com/myProfile" --adCanonicalUrl="http://example.com/myCanonical" --replace
 ```
 
 ## Generating Indicator CQL
