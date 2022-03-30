@@ -6,12 +6,12 @@ To use the tool: `dotnet Xls2Cql.dll [arguments]` where arguments are:
 
 ```
 --generate=generatorName      Use the specified generator
---help                          Show this help and exit
+--help                        Show this help and exit
 --input=input.xlsx            Input Excel spread sheet in XLS or XLSX format
---output=directory				The root directory of your IG (the tool will create input\cql\XXXX.cql and input\resources\XXXXX\*.json)
---replace                       Replace/overwrite existing files (this will keep any modified definitions and just update comments)
---refresh                       Refresh the contents of the define statements (resets the contents of the define to the defaults)
---skel=fileName.cql             The skeleton file to use (for your includes and any header contents)
+--output=directory	      The root directory of your IG (the tool will create input\cql\XXXX.cql and input\resources\XXXXX\*.json)
+--replace                     Replace/overwrite existing files (this will keep any modified definitions and just update comments)
+--refresh                     Refresh the contents of the define statements (resets the contents of the define to the defaults)
+--skel=fileName.cql           The skeleton file to use (for your includes and any header contents)
 ```
 
 ## Skeleton File
