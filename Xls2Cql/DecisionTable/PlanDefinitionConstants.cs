@@ -28,9 +28,14 @@ namespace Xls2Cql.DecisionTable
         internal const string ActionLabel = "Action";
 
         /// <summary>
-        /// The activity definition canonical base URL.
+        /// The activity definition canonical url parameter.
         /// </summary>
-        internal const string ActivityDefinitionCanonicalBaseUrl = "http://hl7.org/fhir/uv/cpg/ActivityDefinition/activity-example-recommendimmunization/";
+        internal const string ActivityDefinitionCanonicalUrlParameter = "adCanonicalUrl";
+
+        /// <summary>
+        /// The activity definition profile url parameter.
+        /// </summary>
+        internal const string ActivityDefinitionProfileUrlParameter = "adProfileUrl";
 
         /// <summary>
         /// The activity definition publisher.
@@ -41,16 +46,6 @@ namespace Xls2Cql.DecisionTable
         /// The annotations label.
         /// </summary>
         internal const string AnnotationsLabel = "Annotations";
-
-        /// <summary>
-        /// The FHIR CPG immunization profile URL.
-        /// </summary>
-        internal const string CpgImmunizationProfileUrl = "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-immunizationrecommendation";
-
-        /// <summary>
-        /// The FHIR CPG immunization activity definition profile URL.
-        /// </summary>
-        internal const string CpgImmunizationActivityDefinitionProfileUrl = "http://hl7.org/fhir/uv/cpg/StructureDefinition/cpg-immunizationactivity";
 
         /// <summary>
         /// The inputs column start.

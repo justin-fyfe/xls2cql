@@ -59,7 +59,8 @@ namespace Xls2Cql.DecisionTable
         /// <returns>The generated file</returns>
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
-            foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
+            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
+            foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.01.BCG"))
             {
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
@@ -68,6 +69,8 @@ namespace Xls2Cql.DecisionTable
                 IXLCell actionHeaderCell = null;
                 IXLCell annotationHeaderCell = null;
                 IXLCell actionCell = null;
+
+                var activityDefinitionCounter = 1;
 
                 foreach (var row in sheet.Rows())
                 {
@@ -99,17 +102,25 @@ namespace Xls2Cql.DecisionTable
                         continue;
                     }
 
-                    var activityDefinitionId = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString()?.Replace(" ", "-").Replace("---", "-").Replace("\\", "-");
-
-                    // remove the trailing dash from the id if necessary
-                    activityDefinitionId = activityDefinitionId.EndsWith("-") ? activityDefinitionId[..^1] : activityDefinitionId;
+                    var activityDefinitionId = $"{sheet.Name}.{activityDefinitionCounter++}";
 
                     var action = new PlanDefinition.ActionComponent
                     {
                         Title = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
                         Description = row.Cell(annotationHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
-                        Definition = new Canonical($"{PlanDefinitionConstants.ActivityDefinitionCanonicalBaseUrl}{activityDefinitionId}")
                     };
+
+                    if (!parameters.TryGetValue(PlanDefinitionConstants.ActivityDefinitionCanonicalUrlParameter, out var activityDefinitionCanonicalUrl))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"Argument '{PlanDefinitionConstants.ActivityDefinitionCanonicalUrlParameter}' not specified. Generated {nameof(PlanDefinition)} resource conditions will not have a 'definitionCanonical'");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        // HACK
+                        action.Definition = new Canonical($"{(activityDefinitionCanonicalUrl as List<string>)?.FirstOrDefault()}{activityDefinitionId}");
+                    }
 
                     // we need to maintain the original reference to the Action
                     // in the case the action cell is a merged cell
@@ -117,7 +128,7 @@ namespace Xls2Cql.DecisionTable
                     // all result in the same action
                     actionCell ??= row.Cell(actionHeaderCell.Address.ColumnNumber);
 
-                    foreach (var cellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                    foreach (var inputCell in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
                     {
                         // if the action cell is not merged, then get a reference to the correct action cell
                         if (!actionCell.IsMerged())
@@ -129,7 +140,7 @@ namespace Xls2Cql.DecisionTable
                         {
                             Expression = new Expression
                             {
-                                Description = cellEntry.Value?.ToString(),
+                                Description = inputCell.Value?.ToString(),
                                 Language = "text/cql",
                                 Expression_ = actionCell.Value?.ToString()
                             },
@@ -138,6 +149,13 @@ namespace Xls2Cql.DecisionTable
                     }
 
                     planDefinition.Action.Add(action);
+
+                    if (!parameters.TryGetValue(PlanDefinitionConstants.ActivityDefinitionProfileUrlParameter, out var activityDefinitionProfileUrl))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"Argument '{PlanDefinitionConstants.ActivityDefinitionProfileUrlParameter}' not specified. Generated {nameof(ActivityDefinition)} resources will not have a profile");
+                        Console.ResetColor();
+                    }
 
                     // add the plan definition and activity definition to the list of resources to be written to the file system
                     resources.Add(new ActivityDefinition
@@ -150,13 +168,15 @@ namespace Xls2Cql.DecisionTable
                         {
                             Profile = new List<string>
                             {
-                                PlanDefinitionConstants.CpgImmunizationActivityDefinitionProfileUrl
+                                // HACK
+                                (activityDefinitionProfileUrl as List<string>)?.FirstOrDefault()
                             }
                         },
                         Status = PublicationStatus.Draft,
                         Publisher = PlanDefinitionConstants.ActivityDefinitionPublisher,
                         Description = new Markdown(action.Description)
                     });
+
                     resources.Add(planDefinition);
                 }
 
@@ -165,7 +185,7 @@ namespace Xls2Cql.DecisionTable
                     var name = resource switch
                     {
                         PlanDefinition _ => sheet.Name,
-                        ActivityDefinition _ => $"{resource.Id.Replace("/", "-").Replace("--", "-").Replace("\\", "-")}",
+                        ActivityDefinition _ => resource.Id,
                         _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
                     };
 
@@ -196,7 +216,7 @@ namespace Xls2Cql.DecisionTable
                 _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
             };
 
-            var fileName = Path.ChangeExtension(Path.Combine(rootPath, "input", "resources", path, name), ".json");
+            var fileName = $"{Path.Combine(rootPath, "input", "resources", path, name)}.json";
 
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
