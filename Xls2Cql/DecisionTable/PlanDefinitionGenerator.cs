@@ -201,7 +201,7 @@ namespace Xls2Cql.DecisionTable
                                     continue;
                                 }
 
-                                planDefinition.Action.LastOrDefault()?.Condition.Add(new PlanDefinition.ConditionComponent
+                                planDefinition.Action.Last().Condition.Add(new PlanDefinition.ConditionComponent
                                 {
                                     Expression = new Expression
                                     {
