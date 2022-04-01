@@ -65,7 +65,6 @@ namespace Xls2Cql.DecisionTable
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
 
-                IXLCell inputCell = null;
                 IXLCell outputHeaderCell = null;
                 IXLCell actionHeaderCell = null;
                 IXLCell annotationHeaderCell = null;
@@ -76,7 +75,7 @@ namespace Xls2Cql.DecisionTable
                 foreach (var row in sheet.Rows())
                 {
                     // we are done processing the final input on the final row
-                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cell(PlanDefinitionConstants.InputsColumnStart)?.Value?.ToString() == string.Empty)
+                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cells(c => c.Address.ColumnNumber < outputHeaderCell?.Address.ColumnNumber)?.All(c => (string) c.Value == string.Empty) == true)
                     {
                         break;
                     }
@@ -134,34 +133,85 @@ namespace Xls2Cql.DecisionTable
                         action.Definition = new Canonical($"{(activityDefinitionCanonicalUrl as List<string>)?.FirstOrDefault()}{activityDefinitionId}");
                     }
 
+                    var firstInputCell = row.Cell(PlanDefinitionConstants.InputsColumnStart);
+
                     // we need to maintain the original reference to the Action
                     // in the case the action cell is a merged cell
                     // meaning that multiple logical groupings of inputs in the sheet
                     // all result in the same action
                     actionCell ??= row.Cell(actionHeaderCell.Address.ColumnNumber);
+                    var currentOutputCell = row.Cell(outputHeaderCell.Address.ColumnNumber);
 
                     // iterate through each input cell in the row until we reach the output column
-                    foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                    foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber))
                     {
+                        if (inputCellEntry.Address.ColumnNumber < PlanDefinitionConstants.InputsColumnStart)
+                        {
+                            continue;
+                        }
+
                         // if the action cell is not merged, then get a reference to the correct action cell
                         if (!actionCell.IsMerged())
                         {
                             actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
                         }
 
-                        action.Condition.Add(new PlanDefinition.ConditionComponent
+                        // if the input cell on the current row in empty
+                        // and the output cell is merged
+                        // then we can assume this is a cell where there is an OR condition based on the decision logic
+                        // therefore we need to "move to the right" on the current row until we reach a cell with data
+                        // and keep processing until we reach the output row
+                        // and add the values we found in the cells as conditions to the most recently added list of conditions
+                        // for the previous action
+                        if (inputCellEntry.IsEmpty() && currentOutputCell.IsMerged())
                         {
-                            Expression = new Expression
+                            IXLCell nextCell;
+                            var counter = 1;
+                            do
                             {
-                                Description = inputCellEntry.Value?.ToString(),
-                                Language = "text/cql",
-                                Expression_ = actionCell.Value?.ToString()
-                            },
-                            Kind = ActionConditionKind.Applicability
-                        });
+                                nextCell = inputCellEntry.CellRight(counter);
+                                counter++;
+
+                                if (nextCell.GetValue<string>() == string.Empty)
+                                {
+                                    continue;
+                                }
+
+                                planDefinition.Action.LastOrDefault()?.Condition.Add(new PlanDefinition.ConditionComponent
+                                {
+                                    Expression = new Expression
+                                    {
+                                        Description = nextCell.GetValue<string>(),
+                                        Language = "text/cql",
+                                        Expression_ = actionCell.GetValue<string>()
+                                    },
+                                    Kind = ActionConditionKind.Applicability
+                                });
+                            } while (nextCell.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber);
+
+                            break;
+                        }
+
+                        if (!inputCellEntry.IsEmpty())
+                        {
+                            action.Condition.Add(new PlanDefinition.ConditionComponent
+                            {
+                                Expression = new Expression
+                                {
+                                    Description = inputCellEntry.GetValue<string>(),
+                                    Language = "text/cql",
+                                    Expression_ = actionCell.GetValue<string>()
+                                },
+                                Kind = ActionConditionKind.Applicability
+                            });
+                        }
                     }
 
-                    planDefinition.Action.Add(action);
+                    // only add the action if there is a title and specific conditions to the action
+                    if (!string.IsNullOrEmpty(action.Title) && action.Condition.Any())
+                    {
+                        planDefinition.Action.Add(action);
+                    }
 
                     if (!parameters.TryGetValue(PlanDefinitionConstants.ActivityDefinitionProfileUrlParameter, out var activityDefinitionProfileUrl))
                     {
