@@ -81,11 +81,6 @@ namespace Xls2Cql.DecisionTable
                         break;
                     }
 
-                    if (!false)
-                    {
-
-                    }
-
                     switch (row.RowNumber())
                     {
                         case 4:
