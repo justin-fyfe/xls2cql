@@ -66,7 +66,6 @@ namespace Xls2Cql.DecisionTable
                 var planDefinition = new PlanDefinition();
 
                 IXLCell outputHeaderCell = null;
-                //IXLCell currentOutputCell = null;
                 IXLCell actionHeaderCell = null;
                 IXLCell annotationHeaderCell = null;
                 IXLCell actionCell = null;
@@ -160,8 +159,6 @@ namespace Xls2Cql.DecisionTable
                         }
                     }
 
-                    //currentOutputCell ??= row.Cell(outputHeaderCell.Address.ColumnNumber);
-
                     // iterate through each input cell in the row until we reach the output column
                     foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber))
                     {
@@ -175,12 +172,6 @@ namespace Xls2Cql.DecisionTable
                         {
                             actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
                         }
-
-                        // if the output cell is not merged, then get a reference to the correct output cell
-                        //if (!currentOutputCell.IsMerged())
-                        //{
-                        //    currentOutputCell = row.Cell(outputHeaderCell.Address.ColumnNumber);
-                        //}
 
                         // if the input cell on the current row in empty
                         // and the output cell is merged
