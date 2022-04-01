@@ -75,7 +75,7 @@ namespace Xls2Cql.DecisionTable
                 foreach (var row in sheet.Rows())
                 {
                     // we are done processing the final input on the final row
-                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cells(c => c.Address.ColumnNumber < outputHeaderCell?.Address.ColumnNumber)?.All(c => (string) c.Value == string.Empty) == true)
+                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cells(c => c.Address.ColumnNumber < outputHeaderCell?.Address.ColumnNumber)?.All(c => c.GetValue<string>() == string.Empty) == true)
                     {
                         break;
                     }
