@@ -133,8 +133,6 @@ namespace Xls2Cql.DecisionTable
                         action.Definition = new Canonical($"{(activityDefinitionCanonicalUrl as List<string>)?.FirstOrDefault()}{activityDefinitionId}");
                     }
 
-                    var firstInputCell = row.Cell(PlanDefinitionConstants.InputsColumnStart);
-
                     // we need to maintain the original reference to the Action
                     // in the case the action cell is a merged cell
                     // meaning that multiple logical groupings of inputs in the sheet
