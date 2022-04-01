@@ -113,7 +113,8 @@ namespace Xls2Cql.DecisionTable
                         continue;
                     }
 
-                    var activityDefinitionId = $"{sheet.Name}.{activityDefinitionCounter++}";
+                    // pad identifiers that are less that 10 with leading 0 to account for sorting purposes
+                    var activityDefinitionId = $"{sheet.Name}.{activityDefinitionCounter++:00}";
 
                     var action = new PlanDefinition.ActionComponent
                     {
