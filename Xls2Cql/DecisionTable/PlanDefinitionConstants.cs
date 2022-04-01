@@ -40,7 +40,7 @@ namespace Xls2Cql.DecisionTable
         /// <summary>
         /// The activity definition publisher.
         /// </summary>
-        internal const string ActivityDefinitionPublisher = "WHO";
+        internal const string ActivityDefinitionPublisher = "World Health Organization (WHO)";
 
         /// <summary>
         /// The annotations label.
@@ -56,16 +56,6 @@ namespace Xls2Cql.DecisionTable
         /// The inputs row start.
         /// </summary>
         internal const int InputsRowStart = 8;
-
-        /// <summary>
-        /// The inputs label.
-        /// </summary>
-        internal const string InputsLabel = "Inputs";
-
-        /// <summary>
-        /// The plan definition base URL parameter.
-        /// </summary>
-        internal const string PlanDefinitionBaseUrlParameter = "pdBaseUrl";
 
         /// <summary>
         /// The output label.
