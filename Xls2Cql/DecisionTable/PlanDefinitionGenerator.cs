@@ -184,6 +184,7 @@ namespace Xls2Cql.DecisionTable
                         {
                             IXLCell nextCell;
                             var counter = 1;
+
                             do
                             {
                                 nextCell = inputCellEntry.CellRight(counter);
