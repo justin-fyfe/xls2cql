@@ -100,7 +100,7 @@ namespace Xls2Cql.Indicators
                                 Description = row.Cell(IndicatorConstants.DenominatorDefinitionColumn).GetValue<String>(),
                                 Criteria = new Expression()
                                 {
-                                    Expression_ = "numerator",
+                                    Expression_ = "denominator",
                                     Language = "text/cql"
                                 },
                                 ElementId = "denominator",

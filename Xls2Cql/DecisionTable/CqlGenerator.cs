@@ -347,21 +347,25 @@ namespace Xls2Cql.DecisionTable
                         {
 
                             // emit DEFINE statements for each term that is applicable
-                            foreach(var itm in this.GetDataElements(r.Expression))
+                            if (!arguments.TryGetValue("rulesonly", out _))
                             {
-                                var defineTerm = itm.Replace("\r", "").Replace("\n", "").Replace("\"","");
+                                foreach (var itm in this.GetDataElements(r.Expression))
+                                {
+                                    var defineTerm = itm.Replace("\r", "").Replace("\n", "").Replace("\"", "");
 
-                                if (!existingElements.Contains(defineTerm)) {
-                                    tw.WriteLine("/* \r\n * @dataElement {0}\r\n */", defineTerm);
-                                    if (existingStatements.TryGetValue(defineTerm, out var existingStmt) && !arguments.TryGetValue("refresh", out _))
+                                    if (!existingElements.Contains(defineTerm))
                                     {
-                                        tw.WriteLine("{0}\r\n", existingStmt);
+                                        tw.WriteLine("/* \r\n * @dataElement {0}\r\n */", defineTerm);
+                                        if (existingStatements.TryGetValue(defineTerm.Trim(), out var existingStmt) && !arguments.TryGetValue("refresh", out _))
+                                        {
+                                            tw.WriteLine("{0}\r\n", existingStmt);
+                                        }
+                                        else
+                                        {
+                                            tw.WriteLine("define \"{0}\":\r\n\t0 // TODO: Define this\r\n", defineTerm);
+                                        }
+                                        existingElements.Add(defineTerm);
                                     }
-                                    else
-                                    {
-                                        tw.WriteLine("define \"{0}\":\r\n\t0 // TODO: Define this\r\n", defineTerm);
-                                    }
-                                    existingElements.Add(defineTerm);
                                 }
                             }
 
@@ -387,10 +391,10 @@ namespace Xls2Cql.DecisionTable
 
                             var name = r.Action;
                           
-                            if (existingStatements.TryGetValue(name, out string existing) && !arguments.TryGetValue("refresh", out _)) {
+                            if (existingStatements.TryGetValue(name.Trim(), out string existing) && !arguments.TryGetValue("refresh", out _)) {
                                 tw.WriteLine("{0}", existing);
                             }
-                            else
+                            else 
                             {
                                 tw.WriteLine("define \"{0}\":\r\n\t{1}\r\n", name, r.Expression);
                             }

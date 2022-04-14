@@ -174,10 +174,10 @@ namespace Xls2Cql.Indicators
                         var dn = d;
                         if (dn.Contains("("))
                         {
-                            dn = dn.Substring(0, dn.IndexOf("("));
+                            dn = dn.Substring(0, dn.IndexOf("(")).Trim();
                         }
 
-                        if (existingStatements.TryGetValue($"{dn} Stratifier", out var strat) && !arguments.TryGetValue("refresh", out _))
+                        if (existingStatements.TryGetValue($"{dn.Trim()} Stratifier", out var strat) && !arguments.TryGetValue("refresh", out _))
                         {
                             tw.WriteLine(strat);
                         }
