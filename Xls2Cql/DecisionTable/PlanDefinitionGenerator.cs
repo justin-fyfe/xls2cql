@@ -60,12 +60,11 @@ namespace Xls2Cql.DecisionTable
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
             foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
-            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.01.BCG"))
+            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.08.Measles"))
             {
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
 
-                IXLCell inputCell = null;
                 IXLCell outputHeaderCell = null;
                 IXLCell actionHeaderCell = null;
                 IXLCell annotationHeaderCell = null;
@@ -76,7 +75,7 @@ namespace Xls2Cql.DecisionTable
                 foreach (var row in sheet.Rows())
                 {
                     // we are done processing the final input on the final row
-                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cell(PlanDefinitionConstants.InputsColumnStart)?.Value?.ToString() == string.Empty)
+                    if (row.RowNumber() > PlanDefinitionConstants.InputsRowStart && row.Cells(c => c.Address.ColumnNumber < outputHeaderCell?.Address.ColumnNumber)?.All(c => c.GetValue<string>() == string.Empty) == true)
                     {
                         break;
                     }
@@ -84,27 +83,16 @@ namespace Xls2Cql.DecisionTable
                     switch (row.RowNumber())
                     {
                         case 4:
-                            if (!parameters.TryGetValue(PlanDefinitionConstants.PlanDefinitionBaseUrlParameter, out var planDefinitionBaseUrl))
-                            {
-                                Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.WriteLine($"Argument '{PlanDefinitionConstants.PlanDefinitionBaseUrlParameter}' not specified. Generated {nameof(PlanDefinition)} resource conditions will not have a 'id'");
-                                Console.ResetColor();
-                            }
-                            else
-                            {
-                                // HACK
-                                planDefinition.Id = $"{(planDefinitionBaseUrl as List<string>)?.FirstOrDefault()}{row.Cell(3).Value}";
-                            }
-
-                            planDefinition.Name = row.Cell(3).Value?.ToString();
+                            planDefinition.Id = row.Cell(3).GetValue<string>();
+                            planDefinition.Name = row.Cell(3).GetValue<string>();
                             continue;
                         case 5:
-                            planDefinition.Description = new Markdown(row.Cell(3).Value?.ToString());
+                            planDefinition.Description = new Markdown(row.Cell(3).GetValue<string>());
                             continue;
                         case 7:
-                            outputHeaderCell = row.Cells(c => c.Value?.ToString() == PlanDefinitionConstants.OutputLabel).Single();
-                            actionHeaderCell = row.Cells(c => c.Value?.ToString() == PlanDefinitionConstants.ActionLabel).Single();
-                            annotationHeaderCell = row.Cells(c => c.Value?.ToString() == PlanDefinitionConstants.AnnotationsLabel).Single();
+                            outputHeaderCell = row.Cells(c => c.GetValue<string>() == PlanDefinitionConstants.OutputLabel).Single();
+                            actionHeaderCell = row.Cells(c => c.GetValue<string>() == PlanDefinitionConstants.ActionLabel).Single();
+                            annotationHeaderCell = row.Cells(c => c.GetValue<string>() == PlanDefinitionConstants.AnnotationsLabel).Single();
                             continue;
                     }
 
@@ -114,13 +102,32 @@ namespace Xls2Cql.DecisionTable
                         continue;
                     }
 
-                    var activityDefinitionId = $"{sheet.Name}.{activityDefinitionCounter++}";
+                    // pad identifiers that are less that 10 with leading 0 to account for sorting purposes
+                    var activityDefinitionId = $"{sheet.Name}.{activityDefinitionCounter++:00}";
 
                     var action = new PlanDefinition.ActionComponent
                     {
-                        Title = row.Cell(outputHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
-                        Description = row.Cell(annotationHeaderCell.Address.ColumnNumber)?.Value?.ToString(),
+                        Title = row.Cell(outputHeaderCell.Address.ColumnNumber).GetValue<string>(),
+                        Description = row.Cell(annotationHeaderCell.Address.ColumnNumber).GetValue<string>()
                     };
+
+                    string annotationCellValue;
+                    var annotationCellCounter = 1;
+
+                    do
+                    {
+                        var annotationCell = row.Cell(annotationHeaderCell.Address.ColumnNumber);
+                        annotationCellValue = annotationCell.GetValue<string>();
+
+                        if (string.IsNullOrEmpty(annotationCellValue))
+                        {
+                            annotationCellValue = annotationCell.CellAbove(annotationCellCounter).GetValue<string>();
+                            annotationCellCounter++;
+                        }
+
+                    } while (string.IsNullOrEmpty(annotationCellValue));
+
+                    action.Description = annotationCellValue;
 
                     if (!parameters.TryGetValue(PlanDefinitionConstants.ActivityDefinitionCanonicalUrlParameter, out var activityDefinitionCanonicalUrl))
                     {
@@ -138,30 +145,98 @@ namespace Xls2Cql.DecisionTable
                     // in the case the action cell is a merged cell
                     // meaning that multiple logical groupings of inputs in the sheet
                     // all result in the same action
-                    actionCell ??= row.Cell(actionHeaderCell.Address.ColumnNumber);
+                    if (actionCell == null)
+                    {
+                        actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
+                    }
+                    else
+                    {
+                        var tempActionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
+
+                        if (!string.IsNullOrEmpty(tempActionCell.GetValue<string>()))
+                        {
+                            actionCell = tempActionCell;
+                        }
+                    }
 
                     // iterate through each input cell in the row until we reach the output column
-                    foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber).Where(c => c.Value?.ToString() != string.Empty))
+                    foreach (var inputCellEntry in row.Cells(c => c.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber))
                     {
+                        if (inputCellEntry.Address.ColumnNumber < PlanDefinitionConstants.InputsColumnStart)
+                        {
+                            continue;
+                        }
+
                         // if the action cell is not merged, then get a reference to the correct action cell
                         if (!actionCell.IsMerged())
                         {
                             actionCell = row.Cell(actionHeaderCell.Address.ColumnNumber);
                         }
 
-                        action.Condition.Add(new PlanDefinition.ConditionComponent
+                        // if the input cell on the current row in empty
+                        // and the output cell is merged
+                        // then we can assume this is a cell where there is an OR condition based on the decision logic
+                        // therefore we need to "move to the right" on the current row until we reach a cell with data
+                        // and keep processing until we reach the output row
+                        // and add the values we found in the cells as conditions to the most recently added list of conditions
+                        // for the previous action
+                        if (inputCellEntry.IsEmpty())
                         {
-                            Expression = new Expression
+                            IXLCell nextCell;
+                            var counter = 1;
+
+                            do
                             {
-                                Description = inputCellEntry.Value?.ToString(),
-                                Language = "text/cql",
-                                Expression_ = actionCell.Value?.ToString()
-                            },
-                            Kind = ActionConditionKind.Applicability
-                        });
+                                nextCell = inputCellEntry.CellRight(counter);
+
+                                // exit if we have iterated past the end of the input cells
+                                if (nextCell.Address.ColumnNumber >= outputHeaderCell.Address.ColumnNumber)
+                                {
+                                    break;
+                                }
+
+                                counter++;
+
+                                if (nextCell.GetValue<string>() == string.Empty)
+                                {
+                                    continue;
+                                }
+
+                                planDefinition.Action.Last().Condition.Add(new PlanDefinition.ConditionComponent
+                                {
+                                    Expression = new Expression
+                                    {
+                                        Description = nextCell.GetValue<string>(),
+                                        Language = "text/cql",
+                                        Expression_ = actionCell.GetValue<string>()
+                                    },
+                                    Kind = ActionConditionKind.Applicability
+                                });
+                            } while (nextCell.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber);
+
+                            break;
+                        }
+
+                        if (!inputCellEntry.IsEmpty() && inputCellEntry.Address.ColumnNumber < outputHeaderCell.Address.ColumnNumber)
+                        {
+                            action.Condition.Add(new PlanDefinition.ConditionComponent
+                            {
+                                Expression = new Expression
+                                {
+                                    Description = inputCellEntry.GetValue<string>(),
+                                    Language = "text/cql",
+                                    Expression_ = actionCell.GetValue<string>()
+                                },
+                                Kind = ActionConditionKind.Applicability
+                            });
+                        }
                     }
 
-                    planDefinition.Action.Add(action);
+                    // only add the action if there is a title and specific conditions to the action
+                    if (!string.IsNullOrEmpty(action.Title) && action.Condition.Any())
+                    {
+                        planDefinition.Action.Add(action);
+                    }
 
                     if (!parameters.TryGetValue(PlanDefinitionConstants.ActivityDefinitionProfileUrlParameter, out var activityDefinitionProfileUrl))
                     {
@@ -174,9 +249,23 @@ namespace Xls2Cql.DecisionTable
                     resources.Add(new ActivityDefinition
                     {
                         Code = new CodeableConcept(PlanDefinitionConstants.SnomedCtUrl, PlanDefinitionConstants.SnomedCtVaccinationCode, PlanDefinitionConstants.SnomedCtDescription, null),
+                        Contact = new List<ContactDetail>
+                        {
+                          new ContactDetail
+                          {
+                              Telecom = new List<ContactPoint>
+                              {
+                                  new ContactPoint(ContactPoint.ContactPointSystem.Url, null, "https://who.int")
+                              }
+                          }
+                        },
+                        Date = DateTimeOffset.Now.ToString("o"),
+                        Description = new Markdown(action.Description),
                         DoNotPerform = false,
+                        Experimental = true,
                         Id = activityDefinitionId,
                         Intent = RequestIntent.Proposal,
+                        Kind = ActivityDefinition.RequestResourceType.ImmunizationRecommendation,
                         Meta = new Meta
                         {
                             Profile = new List<string>
@@ -187,7 +276,8 @@ namespace Xls2Cql.DecisionTable
                         },
                         Status = PublicationStatus.Draft,
                         Publisher = PlanDefinitionConstants.ActivityDefinitionPublisher,
-                        Description = new Markdown(action.Description)
+                        Url = $"{(activityDefinitionCanonicalUrl as List<string>)?.FirstOrDefault()}{activityDefinitionId}",
+                        Version = "0.1.0"
                     });
 
                     resources.Add(planDefinition);
