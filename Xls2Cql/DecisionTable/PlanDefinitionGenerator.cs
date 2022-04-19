@@ -60,7 +60,7 @@ namespace Xls2Cql.DecisionTable
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
             foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
-            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.08.Measles"))
+            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.13.TBE"))
             {
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
@@ -202,7 +202,7 @@ namespace Xls2Cql.DecisionTable
                                     continue;
                                 }
 
-                                planDefinition.Action.Last().Condition.Add(new PlanDefinition.ConditionComponent
+                                action.Condition.Add(new PlanDefinition.ConditionComponent
                                 {
                                     Expression = new Expression
                                     {
