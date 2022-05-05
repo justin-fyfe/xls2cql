@@ -59,11 +59,17 @@ namespace Xls2Cql.DecisionTable
         /// <returns>The generated file</returns>
         public void Generate(IXLWorkbook workbook, string rootPath, string skelFile, IDictionary<string, object> parameters)
         {
-            foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.") && c.Name != "IMMZ.DT.00.Common"))
-            //foreach (var sheet in workbook.Worksheets.Where(c => c.Name == "IMMZ.DT.13.TBE"))
+            foreach (var sheet in workbook.Worksheets.Where(c => c.Name.StartsWith("IMMZ.DT.")))
             {
                 var resources = new List<Resource>();
                 var planDefinition = new PlanDefinition();
+
+                if (sheet.Name.Contains("."))
+                {
+                    // HACK
+                    var libraryReference = sheet.Name[..sheet.Name.LastIndexOf(".", StringComparison.InvariantCultureIgnoreCase)].Replace(".", string.Empty);
+                    planDefinition.LibraryElement.Add(new Canonical($"http://fhir.org/guides/who/smart-immunization/Library/{libraryReference}"));
+                }
 
                 IXLCell outputHeaderCell = null;
                 IXLCell actionHeaderCell = null;
@@ -312,14 +318,29 @@ namespace Xls2Cql.DecisionTable
                 Pretty = true
             });
 
-            var path = resource switch
-            {
-                PlanDefinition _ => nameof(PlanDefinition).ToLower(),
-                ActivityDefinition _ => nameof(ActivityDefinition).ToLower(),
-                _ => throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}")
-            };
+            string resourceNameFolder;
+            string fileName = null;
 
-            var fileName = $"{Path.Combine(rootPath, "input", "resources", path, name)}.json";
+            switch (resource)
+            {
+                case PlanDefinition _:
+                    resourceNameFolder = nameof(PlanDefinition).ToLower();
+                    var workingResourceId = resource.Id;
+                    //fileName = $"{Path.Combine(rootPath, "input", "resources", resourceNameFolder, workingResourceId[..workingResourceId.LastIndexOf(".")].Replace(".", string.Empty), name)}.json";
+                    break;
+                case ActivityDefinition _:
+                    resourceNameFolder = nameof(ActivityDefinition).ToLower();
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown resource type: {resource?.GetType().Name}");
+            }
+
+            //if (fileName == null)
+            //{
+            //    fileName = $"{Path.Combine(rootPath, "input", "resources", resourceNameFolder, name)}.json";
+            //}
+
+            fileName = $"{Path.Combine(rootPath, "input", "resources", resourceNameFolder, name)}.json";
 
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
