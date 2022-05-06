@@ -70,7 +70,7 @@ namespace Xls2Cql.DecisionTable
         /// <summary>
         /// The SNOMED CT URL.
         /// </summary>
-        internal const string SnomedCtUrl = "http://snomed.info/sct/";
+        internal const string SnomedCtUrl = "http://snomed.info/sct";
 
         /// <summary>
         /// The SNOMED CT vaccination code.
