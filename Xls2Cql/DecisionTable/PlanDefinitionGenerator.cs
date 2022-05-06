@@ -91,6 +91,7 @@ namespace Xls2Cql.DecisionTable
                         case 4:
                             planDefinition.Id = row.Cell(3).GetValue<string>();
                             planDefinition.Name = row.Cell(3).GetValue<string>();
+                            planDefinition.Title = row.Cell(3).GetValue<string>();
                             continue;
                         case 5:
                             planDefinition.Description = new Markdown(row.Cell(3).GetValue<string>());
@@ -282,6 +283,7 @@ namespace Xls2Cql.DecisionTable
                         },
                         Status = PublicationStatus.Draft,
                         Publisher = PlanDefinitionConstants.ActivityDefinitionPublisher,
+                        Title = activityDefinitionId,
                         Url = $"{(activityDefinitionCanonicalUrl as List<string>)?.FirstOrDefault()}{activityDefinitionId}",
                         Version = "0.1.0"
                     });
