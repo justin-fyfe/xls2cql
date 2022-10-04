@@ -14,9 +14,6 @@
  * User: fyfej
  * Date: 2022-3-4
  */
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Xls2Cql.Indicators
 {
